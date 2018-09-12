@@ -39,6 +39,21 @@ struct BoundedBuffer {
         delete[] buffer;
     }
 
+    /* The mutexes are managed by a std::unique_lock. 
+     * It is a wrapper to manage a lock. 
+     * This is necessary to be used with the condition variables. 
+     * To wake up a thread that is waiting on a condition variable, the notify_one() function is used.
+     * The wait function is a bit special.
+     * It takes as the first argument the unique lock and a the second one a predicate.
+     * The predicate must return false when the waiting must be continued
+     * (it is equivalent to while(!pred()){cv.wait(l);}).
+     * The rest of the example has nothing special.
+     * We can use this structure to fix multiple consumers / multiple producers problem.
+     * This problem is very common in concurrent programming.
+     * Several threads (consumers) are waiting from data produced by another several threads (producers).
+     * Here is an example with several threads using the structure:    
+     */
+
     void deposit(int data) {
         std::unique_lock<std::mutex> l(lock);
 
@@ -83,6 +98,12 @@ void producer(int id, BoundedBuffer& buffer) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
+
+/*
+ * Three consumer threads and two producer threads are created and query the structure constantly.
+ * An interesting thing about this example is the use of std::ref to pass the buffer by reference,
+ * it is necessary to avoid a copy of the buffer.
+ */
 
 int main() {
     BoundedBuffer buffer(200);
