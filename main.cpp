@@ -28,6 +28,7 @@ struct BoundedBuffer {
 
     std::mutex lock;
 
+
     std::condition_variable not_full;
     std::condition_variable not_empty;
 
@@ -55,26 +56,30 @@ struct BoundedBuffer {
      */
 
     void deposit(int data) {
-        std::unique_lock<std::mutex> l(lock);
+        std::unique_lock<std::mutex> locker(lock);
 
-        not_full.wait(l, [this]() {
+        not_full.wait(locker, [this]() {
             return count != capacity; });
 
         buffer[rear] = data;
         rear = (rear + 1) % capacity;
+
+        cout << "from deposit: rear : " << rear << '\n';
         ++count;
 
         not_empty.notify_one();
     }
 
     int fetch() {
-        std::unique_lock<std::mutex> l(lock);
+        std::unique_lock<std::mutex> locker(lock);
 
-        not_empty.wait(l, [this]() {
+        not_empty.wait(locker, [this]() {
             return count != 0; });
 
         int result = buffer[front];
         front = (front + 1) % capacity;
+
+        cout << "from fetch: front : " << front << '\n';
         --count;
 
         not_full.notify_one();
